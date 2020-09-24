@@ -205,6 +205,7 @@ bitflags::bitflags! {
         const READ_AS_INTEGER = sys::TextureReadFlags::ReadAsInteger as u32;
         const NORMALIZED_COORDINATES = sys::TextureReadFlags::NormalizedCoordinates as u32;
         const SRGB = sys::TextureReadFlags::Srgb as u32;
+        #[cfg(cuda_version = "11")]
         const DISABLE_TRILINEAR_OPTIIMIZATION = sys::TextureReadFlags::DisableTrilinearOptimization as u32;
     }
 }
