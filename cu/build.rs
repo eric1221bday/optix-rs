@@ -9,6 +9,16 @@ fn main() {
     compile_to_ptx("src/cuda/add.cu");
 }
 
+fn get_cuda_major_version() -> u32 {
+    let output = std::process::Command::new("nvcc")
+    .arg("--version").output().expect("failed to run nvcc command");
+    let output_str = std::str::from_utf8(&output.stdout).expect("could not parse version output string");
+    let outputs: Vec<&str> = output_str.split_ascii_whitespace().collect();
+    let major_version = outputs[4].strip_suffix(",").unwrap();
+
+    major_version.parse::<u32>().unwrap()
+}
+
 fn compile_to_ptx(cu_path: &str) {
     println!("cargo:rerun-if-changed={}", cu_path);
 
