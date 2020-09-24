@@ -9,14 +9,19 @@ fn main() {
     compile_to_ptx("src/cuda/add.cu");
 }
 
-fn get_cuda_major_version() -> u32 {
+fn get_cuda_major_version() -> f32 {
     let output = std::process::Command::new("nvcc")
-    .arg("--version").output().expect("failed to run nvcc command");
-    let output_str = std::str::from_utf8(&output.stdout).expect("could not parse version output string");
-    let outputs: Vec<&str> = output_str.split_ascii_whitespace().collect();
-    let major_version = outputs[4].strip_suffix(",").unwrap();
+        .arg("--version")
+        .output()
+        .expect("failed to run nvcc command");
+    let output_str = std::str::from_utf8(&output.stdout)
+        .expect("could not parse version output string");
+    let release_idx = output_str.rfind("release").unwrap() + "release".len();
+    let comma_idx = output_str.rfind(",").unwrap();
+    println!("output: {:?}", &output_str[release_idx..comma_idx]);
+    let major_version = &output_str[release_idx..comma_idx].trim();
 
-    major_version.parse::<u32>().unwrap()
+    major_version.parse::<f32>().unwrap()
 }
 
 fn compile_to_ptx(cu_path: &str) {
@@ -44,10 +49,20 @@ fn bindgen_cuda(cuda_root: &str) {
     let out_path = std::path::PathBuf::from(std::env::var("OUT_DIR").unwrap())
         .join("cuda_wrapper.rs");
 
+    let cuda_version = get_cuda_major_version();
+    let cuda_wrapper;
+    if cuda_version >= 11.0 {
+        cuda_wrapper = "cuda_11_wrapper.h";
+        println!("cargo:rustc-cfg=cuda_version=\"11\"");
+    } else {
+        cuda_wrapper = "cuda_10_wrapper.h";
+        println!("cargo:rustc-cfg=cuda_version=\"10\"");
+    }
+
     let header_path =
         std::path::PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap())
             .join("src")
-            .join("cuda_wrapper.h");
+            .join(cuda_wrapper);
 
     let this_path =
         std::path::PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap())
@@ -58,7 +73,7 @@ fn bindgen_cuda(cuda_root: &str) {
         || get_modified_time(&out_path) < get_modified_time(&this_path)
     {
         let bindings = bindgen::Builder::default()
-            .header("src/cuda_wrapper.h")
+            .header(format!("src/{:}", cuda_wrapper))
             .clang_arg(format!("-I{}/include", cuda_root))
             .whitelist_recursively(false)
             .whitelist_type("CU.*")
