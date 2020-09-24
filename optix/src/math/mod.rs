@@ -5,6 +5,9 @@ cfg_if::cfg_if! {
     } else if #[cfg(feature="nalgebra-glm")] {
         pub mod types_nalgebra_glm;
         pub use types_nalgebra_glm::*;
+    } else if #[cfg(feature="nalgebra")] {
+        pub mod types_nalgebra;
+        pub use types_nalgebra::*;
     } else {
         // internal types
     }
